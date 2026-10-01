@@ -239,7 +239,7 @@ function Utils.blurOut()
     TriggerScreenblurFadeOut(250)
 end
 
----@param serverId number
+---@param serverID number
 ---@return string
 local function defaultGetPlayerName(serverId)
     local playerId = GetPlayerFromServerId(serverId)

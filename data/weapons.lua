@@ -253,7 +253,9 @@ return {
 		['WEAPON_FLASHLIGHT'] = {
 			label = 'Flashlight',
 			weight = 125,
-			durability = 0.1,
+			durability = 4,
+			rarity = 'rare',
+			category = 'weapons',
 		},
 
 		['WEAPON_GOLFCLUB'] = {
@@ -289,9 +291,9 @@ return {
 		},
 
 		['WEAPON_HATCHET'] = {
-			label = 'Hatchet',
+			label = 'Hacha',
 			weight = 1000,
-			durability = 0.1,
+			durability = 0.05,
 		},
 
 		['WEAPON_HEAVYRIFLE'] = {
@@ -352,7 +354,7 @@ return {
 		},
 
 		['WEAPON_KNIFE'] = {
-			label = 'Knife',
+			label = 'Cuchillo',
 			weight = 300,
 			durability = 0.1,
 		},
@@ -477,7 +479,7 @@ return {
 		},
 
 		['WEAPON_PISTOL'] = {
-			label = 'Pistol',
+			label = 'Pistola',
 			weight = 1130,
 			durability = 0.1,
 			ammoname = 'ammo-9',
@@ -498,7 +500,7 @@ return {
 		},
 
 		['WEAPON_POOLCUE'] = {
-			label = 'Pool Cue',
+			label = 'Pico',
 			weight = 146,
 			durability = 0.1,
 		},
@@ -618,14 +620,14 @@ return {
 		},
 
 		['WEAPON_SNSPISTOL'] = {
-			label = 'SNS Pistol',
+			label = 'Pistola SNS',
 			weight = 465,
 			durability = 0.1,
 			ammoname = 'ammo-45'
 		},
 
 		['WEAPON_SNSPISTOL_MK2'] = {
-			label = 'SNS Pistol MK2',
+			label = 'Pistola SNS MK2',
 			weight = 465,
 			durability = 0.1,
 			ammoname = 'ammo-45'
@@ -692,7 +694,7 @@ return {
 		},
 
 		['WEAPON_WRENCH'] = {
-			label = 'Wrench',
+			label = 'Llave inglesa',
 			weight = 2500,
 			durability = 0.1,
 		},
@@ -716,11 +718,198 @@ return {
 			weight = 600,
 			throwable = true,
 		},
+		--Custom
+		['WEAPON_BARBEDBAT'] = {
+			label = 'Lucille?',
+			weight = 1500,
+			durability = 0.3,
+			rarity = 'rare',
+			category = 'weapons',
+		},
+		['WEAPON_PABAT3'] = {
+			label = 'Bate con clavos',
+			weight = 1500,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+		},
+		['WEAPON_BOW'] = {
+		    label = 'Arco de madera',
+		    weight = 920,
+		    durability = 2,
+		    ammoname = 'ammo-arrow',
+			rarity = 'uncommon',
+			category = 'weapons',
+		},
+		['WEAPON_ZMACHETTE'] = {
+            label = 'Machete de mango rojo',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_ZFIREAXE'] = {
+            label = 'Hacha de bombero',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_WRENCHKNIFE'] = {
+            label = 'Cuchillo llave inglesa',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_GIVEWAYSIGN'] = {
+            label = 'Señal de ceda el paso',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_ZHATCHET'] = {
+            label = 'Hacha pequeña',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_SMALLAXE'] = {
+            label = 'Hacha pequeña',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_GRINDERBAT'] = {
+            label = 'Bate molinillo',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_BRAKEDISCAXE'] = {
+            label = 'Hacha de disco de freno',
+            weight = 450,
+			durability = 0.1,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_CUSTOMAXE'] = {
+            label = 'Flag Stick',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_BLADEDBAT'] = {
+            label = 'Bladed Bat',
+            weight = 450,
+			durability = 0.4,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_ZHAMMER'] = {
+            label = 'Martillo de tubo',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_BLADEHATCHET'] = {
+            label = 'Hacha de hoja',
+            weight = 450,
+			durability = 0.1,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_HUNTERHATCHET'] = {
+            label = 'Hacha de cazador',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_CLAWAXE'] = {
+            label = 'Hacha de garra',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_LUCILLE'] = {
+            label = 'Lucille',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_ENHANCEDBAT'] = {
+            label = 'Bate mejorado',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_SICKLE'] = {
+            label = 'Hacha de garra',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_SPIKEYSICKLE'] = {
+            label = 'Hacha de garra con púas',
+            weight = 450,
+			durability = 0.5,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_ZKATANA'] = {
+            label = 'Katana',
+            weight = 450,
+			durability = 0.05,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+        ['WEAPON_ZHALBERD'] = {
+            label = 'Alabarda',
+            weight = 450,
+			durability = 0.1,
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_CROSSBOW'] = {
+            label = 'Ballesta',
+            weight = 3300,
+            durability = 1,
+            ammoname = 'ammo-arrow',
+            rarity = 'rare',
+            category = 'weapons',
+        },
+		['WEAPON_PYTHON'] = {
+            label = 'Python',
+            weight = 3300,
+            durability = 0.03,
+            ammoname = 'ammo-44',
+			rarity = 'rare',
+			category = 'weapons',
+        },
+		['WEAPON_HUNTERSHOTGUN'] = {
+            label = 'Escopeta de caza',
+            weight = 3300,
+            durability = 0.03,
+            ammoname = 'ammo-shotgun',
+			rarity = 'rare',
+			category = 'weapons',
+        },
 	},
 
 	Components = {
 		['at_flashlight'] = {
-			label = 'Tactical Flashlight',
+			label = 'Linterna Táctica',
 			weight = 120,
 			type = 'flashlight',
 			client = {
@@ -736,7 +925,7 @@ return {
 		},
 
 		['at_suppressor_light'] = {
-			label = 'Suppressor',
+			label = 'Silenciador Ligero',
 			weight = 280,
 			type = 'muzzle',
 			client = {
@@ -1875,6 +2064,212 @@ return {
 		['ammo-emp'] = {
 			label = 'EMP round',
 			weight = 400,
+		},
+
+		--Custom
+		['ammo-artvase'] = {
+			label = 'Art Vase Ammo',
+			weight = 10,
+		},
+		['ammo-banana'] = {
+			label = 'Banana Ammo',
+			weight = 5,
+		},
+		['ammo-baseball'] = {
+			label = 'Baseball Ammo',
+			weight = 3,
+		},
+		['ammo-beer'] = {
+			label = 'Beer Bottle Ammo',
+			weight = 7,
+		},
+		['ammo-bigcigar'] = {
+			label = 'Big Cigar Ammo',
+			weight = 2,
+		},
+		['ammo-billiardball'] = {
+			label = 'Billiard Ball Ammo',
+			weight = 4,
+		},
+		['ammo-bongo'] = {
+			label = 'Bongo Drum Ammo',
+			weight = 8,
+		},
+		['ammo-bottle2'] = {
+			label = 'Broken Bottle Ammo',
+			weight = 5,
+		},
+		['ammo-bowling'] = {
+			label = 'Bowling Pin Ammo',
+			weight = 6,
+		},
+		['ammo-broom'] = {
+			label = 'Broom Ammo',
+			weight = 3,
+		},
+		['ammo-camera'] = {
+			label = 'Camera Ammo',
+			weight = 1,
+		},
+		['ammo-can'] = {
+			label = 'Can Ammo',
+			weight = 2,
+		},
+		['ammo-candle'] = {
+			label = 'Candle Ammo',
+			weight = 1,
+		},
+		['ammo-cash'] = {
+			label = 'Cash Ammo',
+			weight = 0.5,
+		},
+		['ammo-chair'] = {
+			label = 'Chair Ammo',
+			weight = 12,
+		},
+		['ammo-controller'] = {
+			label = 'Game Controller Ammo',
+			weight = 2,
+		},
+		['ammo-dildo'] = {
+			label = 'Dildo Ammo',
+			weight = 1,
+		},
+		['ammo-drill'] = {
+			label = 'Drill Ammo',
+			weight = 8,
+		},
+		['ammo-football'] = {
+			label = 'Football Ammo',
+			weight = 3,
+		},
+		['ammo-golf2'] = {
+			label = 'Golf Club Ammo',
+			weight = 5,
+		},
+		['ammo-grinder'] = {
+			label = 'Grinder Ammo',
+			weight = 4,
+		},
+		['ammo-hammer2'] = {
+			label = 'Hammer Ammo',
+			weight = 5,
+		},
+		['ammo-keyboard'] = {
+			label = 'Keyboard Ammo',
+			weight = 2,
+		},
+		['ammo-lamp'] = {
+			label = 'Lamp Ammo',
+			weight = 4,
+		},
+		['ammo-mallet'] = {
+			label = 'Mallet Ammo',
+			weight = 5,
+		},
+		['ammo-medcrutch'] = {
+			label = 'Medcrutch Ammo',
+			weight = 3,
+		},
+		['ammo-ogstatue'] = {
+			label = 'OG Statue Ammo',
+			weight = 6,
+		},
+		['ammo-parkingwand'] = {
+			label = 'Parking Wand Ammo',
+			weight = 2,
+		},
+		['ammo-phone'] = {
+			label = 'Phone Ammo',
+			weight = 1,
+		},
+		['ammo-pot'] = {
+			label = 'Pot Ammo',
+			weight = 6,
+		},
+		['ammo-remote'] = {
+			label = 'Remote Control Ammo',
+			weight = 2,
+		},
+		['ammo-roadcone'] = {
+			label = 'Road Cone Ammo',
+			weight = 10,
+		},
+		['ammo-roadsign'] = {
+			label = 'Road Sign Ammo',
+			weight = 8,
+		},
+		['ammo-rod'] = {
+			label = 'Rod Ammo',
+			weight = 5,
+		},
+		['ammo-shampon'] = {
+			label = 'Shampoo Ammo',
+			weight = 3,
+		},
+		['ammo-shit'] = {
+			label = 'Shit Ammo',
+			weight = 1,
+		},
+		['ammo-shoe'] = {
+			label = 'Shoe Ammo',
+			weight = 2,
+		},
+		['ammo-shovel'] = {
+			label = 'Shovel Ammo',
+			weight = 7,
+		},
+		['ammo-sowflower'] = {
+			label = 'Sowflower Ammo',
+			weight = 1,
+		},
+		['ammo-spanner'] = {
+			label = 'Spanner Ammo',
+			weight = 4,
+		},
+		['ammo-stool'] = {
+			label = 'Stool Ammo',
+			weight = 4,
+		},
+		['ammo-teddy'] = {
+			label = 'Teddy Bear Ammo',
+			weight = 2,
+		},
+		['ammo-toiletbrush'] = {
+			label = 'Toilet Brush Ammo',
+			weight = 2,
+		},
+		['ammo-toy'] = {
+			label = 'Toy Ammo',
+			weight = 1,
+		},
+		['ammo-trashbag'] = {
+			label = 'Trash Bag Ammo',
+			weight = 10,
+		},
+		['ammo-tree'] = {
+			label = 'Tree Ammo',
+			weight = 12,
+		},
+		['ammo-trophy'] = {
+			label = 'Trophy Ammo',
+			weight = 3,
+		},
+		['ammo-wallet'] = {
+			label = 'Wallet Ammo',
+			weight = 0.5,
+		},
+		['ammo-wellies'] = {
+			label = 'Wellies Ammo',
+			weight = 2,
+		},
+		['ammo-yogamat'] = {
+			label = 'Yoga Mat Ammo',
+			weight = 1,
+		},
+		['ammo-arrow'] = {
+		    label = 'Flecha',
+		    weight = 3,
 		},
 	}
 }

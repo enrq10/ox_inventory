@@ -171,6 +171,55 @@ lib.callback.register('ox_inventory:openShop', function(source, data)
 	return { label = playerInv.label, type = playerInv.type, slots = playerInv.slots, weight = playerInv.weight, maxWeight = playerInv.maxWeight }, shop
 end)
 
+-- Returns true if the currency is a framework account (bank, crypto, etc.)
+-- rather than an inventory item. Detection: no item definition exists for it.
+local function isFrameworkAccount(currency)
+	return currency ~= 'money' and not Items(currency)
+end
+
+-- Returns the balance of a framework account (bank, crypto, etc.) for a player.
+local function getFrameworkAccountBalance(source, currency)
+	local qbName = currency == 'bank' and 'bank' or currency
+	if GetResourceState('qb-core') == 'started' or GetResourceState('qbx_core') == 'started' then
+		local QBCore = exports['qb-core']:GetCoreObject() or exports['qbx_core']:GetCoreObject()
+		if QBCore then
+			local Player = QBCore.Functions.GetPlayer(source)
+			if Player then return Player.Functions.GetMoney(qbName) or 0 end
+		end
+	elseif GetResourceState('es_extended') == 'started' then
+		local ESX = exports['es_extended']:getSharedObject()
+		if ESX then
+			local xPlayer = ESX.GetPlayerFromId(source)
+			if xPlayer then return xPlayer.getAccount(qbName)?.money or 0 end
+		end
+	elseif GetResourceState('ox_core') == 'started' then
+		local player = Ox.GetPlayer(source)
+		if player then return player.getAccount(qbName) or 0 end
+	end
+	return 0
+end
+
+-- Deducts from a framework account (bank, crypto, etc.)
+local function removeFrameworkAccount(source, currency, amount)
+	local qbName = currency == 'bank' and 'bank' or currency
+	if GetResourceState('qb-core') == 'started' or GetResourceState('qbx_core') == 'started' then
+		local QBCore = exports['qb-core']:GetCoreObject() or exports['qbx_core']:GetCoreObject()
+		if QBCore then
+			local Player = QBCore.Functions.GetPlayer(source)
+			if Player then Player.Functions.RemoveMoney(qbName, amount, 'shop-purchase') end
+		end
+	elseif GetResourceState('es_extended') == 'started' then
+		local ESX = exports['es_extended']:getSharedObject()
+		if ESX then
+			local xPlayer = ESX.GetPlayerFromId(source)
+			if xPlayer then xPlayer.removeAccountMoney(qbName, amount) end
+		end
+	elseif GetResourceState('ox_core') == 'started' then
+		local player = Ox.GetPlayer(source)
+		if player then player.removeAccount(qbName, amount) end
+	end
+end
+
 local function canAffordItem(inv, currency, price)
 	local canAfford = price >= 0 and Inventory.GetItemCount(inv, currency) >= price
 
@@ -305,6 +354,179 @@ lib.callback.register('ox_inventory:buyItem', function(source, data)
 			return false, false, { type = 'error', description = locale('unable_stack_items') }
 		end
 	end
+end)
+
+lib.callback.register('ox_inventory:shopCheckout', function(source, data)
+	local playerInv = Inventory(source)
+	if not playerInv or not playerInv.currentShop then return false, false, { type = 'error', description = 'No shop open' } end
+
+	local shopType, shopId = playerInv.currentShop:match('^(.-) (%d-)$')
+	if not shopType then shopType = playerInv.currentShop end
+	if shopId then shopId = tonumber(shopId) end
+
+	local shop = shopId and Shops[shopType][shopId] or Shops[shopType]
+	if not shop then return false, false, { type = 'error', description = 'Shop not found' } end
+
+	local defaultCurrency = data.method == 'bank' and 'bank' or 'money'
+	local currencyTotals = {}
+	local itemsToBuy = {}
+
+	for _, cartItem in ipairs(data.items) do
+		local fromData = shop.items[cartItem.slot]
+		if not fromData then
+			return false, false, { type = 'error', description = locale('shop_nostock') }
+		end
+
+		if fromData.count and fromData.count < cartItem.quantity then
+			return false, false, { type = 'error', description = locale('shop_nostock') }
+		end
+
+		if fromData.license and server.hasLicense and not server.hasLicense(playerInv, fromData.license) then
+			return false, false, { type = 'error', description = locale('item_unlicensed') }
+		end
+
+		if fromData.grade then
+			local _, rank = server.hasGroup(playerInv, shop.groups)
+			if not isRequiredGrade(fromData.grade, rank) then
+				return false, false, { type = 'error', description = locale('stash_lowgrade') }
+			end
+		end
+
+		local fromItem = Items(fromData.name)
+		if not fromItem then
+			return false, false, { type = 'error', description = 'Invalid item' }
+		end
+
+		local itemCurrency = (fromData.currency and fromData.currency ~= 'money') and fromData.currency or defaultCurrency
+
+		local metadata, count = Items.Metadata(playerInv, fromItem, fromData.metadata and table.clone(fromData.metadata) or {}, cartItem.quantity)
+		local price = count * fromData.price
+		currencyTotals[itemCurrency] = (currencyTotals[itemCurrency] or 0) + price
+
+		table.insert(itemsToBuy, {
+			fromSlot = cartItem.slot,
+			fromData = fromData,
+			fromItem = fromItem,
+			count = count,
+			metadata = metadata,
+			price = price,
+			currency = itemCurrency,
+		})
+	end
+
+	for currencyName, total in pairs(currencyTotals) do
+		local canAfford
+		if isFrameworkAccount(currencyName) then
+			local balance = getFrameworkAccountBalance(source, currencyName)
+			if balance < total then
+				canAfford = {
+					type = 'error',
+					description = locale('cannot_afford', ('%s%s'):format(locale('$'), math.groupdigits(total)))
+				}
+			else
+				canAfford = true
+			end
+		else
+			canAfford = canAffordItem(playerInv, currencyName, total)
+		end
+
+		if canAfford ~= true then
+			return false, false, canAfford
+		end
+	end
+
+	local addedWeight = 0
+	for _, item in ipairs(itemsToBuy) do
+		addedWeight = addedWeight + (item.fromItem.weight + (item.metadata?.weight or 0)) * item.count
+	end
+
+	if playerInv.weight + addedWeight > playerInv.maxWeight then
+		return false, false, { type = 'error', description = locale('cannot_carry') }
+	end
+
+	local updatedPlayerSlots = {}
+	local updatedShopSlots = {}
+
+	for _, item in ipairs(itemsToBuy) do
+		local toSlot = nil
+		for i = 1, playerInv.slots do
+			if not playerInv.items[i] then
+				toSlot = i
+				break
+			elseif playerInv.items[i].name == item.fromItem.name and item.fromItem.stack and table.matches(playerInv.items[i].metadata, item.metadata) then
+				toSlot = i
+				break
+			end
+		end
+
+		if not toSlot then
+			return false, false, { type = 'error', description = locale('cannot_carry') }
+		end
+
+		local hooks <close> = TriggerEventHooks('buyItem', {
+			source = source,
+			shopType = shopType,
+			shopId = shopId,
+			toInventory = playerInv.id,
+			toSlot = toSlot,
+			fromSlot = item.fromData,
+			itemName = item.fromData.name,
+			metadata = item.metadata,
+			count = item.count,
+			price = item.fromData.price,
+			totalPrice = item.price,
+			currency = item.currency,
+		})
+
+		if not hooks.success then return false, false, { type = 'error', description = 'Purchase blocked' } end
+
+		Inventory.SetSlot(playerInv, item.fromItem, item.count, item.metadata, toSlot)
+
+		table.insert(updatedPlayerSlots, {
+			item = playerInv.items[toSlot],
+			inventory = source
+		})
+
+		if item.fromData.count then
+			shop.items[item.fromSlot].count = item.fromData.count - item.count
+
+			table.insert(updatedShopSlots, {
+				item = shop.items[item.fromSlot],
+				slot = item.fromSlot
+			})
+		end
+	end
+
+	for currencyName, total in pairs(currencyTotals) do
+		if isFrameworkAccount(currencyName) then
+			removeFrameworkAccount(source, currencyName, total)
+		else
+			removeCurrency(playerInv, currencyName, total)
+		end
+	end
+
+	playerInv.weight = playerInv.weight + addedWeight
+
+	if server.syncInventory then server.syncInventory(playerInv) end
+
+	TriggerClientEvent('ox_inventory:updateSlots', source, updatedPlayerSlots, playerInv.weight)
+
+	local totalPrice = 0
+	for _, total in pairs(currencyTotals) do totalPrice = totalPrice + total end
+	local primaryCurrency = next(currencyTotals) or 'money'
+	local itemDef = not isFrameworkAccount(primaryCurrency) and Items(primaryCurrency)
+	local currencyLabel = (primaryCurrency == 'money' or isFrameworkAccount(primaryCurrency)) and locale('$') or (itemDef and ' '..itemDef.label or primaryCurrency)
+	local priceFormatted = math.groupdigits(totalPrice)
+	local message = locale('purchased_for', #itemsToBuy, 'items', currencyLabel, priceFormatted)
+
+	if server.loglevel > 0 then
+		lib.logger(playerInv.owner, 'shopCheckout', ('"%s" purchased %d items for $%s'):format(playerInv.label, #itemsToBuy, priceFormatted), ('shop:%s'):format(shop.label))
+	end
+
+	return true, {
+		weight = playerInv.weight,
+		shopItems = updatedShopSlots
+	}, { type = 'success', description = message }
 end)
 
 server.shops = Shops

@@ -67,6 +67,10 @@ local function newItem(data)
             clientData.prop = clientData.prop and { clientData.prop, clientData.propTwo } or clientData.propTwo
             clientData.propTwo = nil
         end
+
+        if clientData.throwProp then
+            data.throwProp = clientData.throwProp
+        end
 	end
 
     ::continue::

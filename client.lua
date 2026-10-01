@@ -5,6 +5,10 @@ require 'modules.interface.client'
 
 local Utils = require 'modules.utils.client'
 local Weapon = require 'modules.weapon.client'
+
+local _configRaw = LoadResourceFile(GetCurrentResourceName(), 'config.lua')
+local Config = assert(load(_configRaw, '@@ox_inventory/config.lua'))()
+
 local currentWeapon
 
 exports('getCurrentWeapon', function()
@@ -41,6 +45,38 @@ end)
 client.player:set('invBusy', true)
 client.player:set('invHotkeys', false)
 client.player:set('canUseWeapons', false)
+
+local function getStatusValues()
+    local status = exports['of_inv_extension']:getStatusValues()
+    return status.hunger, status.thirst
+end
+
+ 
+CreateThread(function()
+    while true do
+        Wait(1000)
+
+        if invOpen and Config.footer == 'hud' then
+            local ped = PlayerPedId()
+            local health = (GetEntityHealth(ped) - 100) / (GetEntityMaxHealth(ped) - 100) * 100
+
+            if health < 0 then health = 0 end
+            if health > 100 then health = 100 end
+
+            local hunger, thirst = getStatusValues()
+
+            SendNUIMessage({
+                action = 'updateHUD',
+                data = {
+                    health = health,
+                    armor = GetPedArmour(ped),
+                    hunger = hunger,
+                    thirst = thirst,
+                }
+            })
+        end
+    end
+end)
 
 local function canOpenInventory()
     if not PlayerData.loaded then
@@ -281,8 +317,6 @@ function client.openInventory(inv, data)
     SetNuiFocusKeepInput(true)
     closeTrunk()
 
-    if client.screenblur then Utils.blurIn() end
-
     currentInventory = right or defaultInventory
     left.items = PlayerData.inventory
     left.groups = PlayerData.groups
@@ -294,6 +328,20 @@ function client.openInventory(inv, data)
             rightInventory = currentInventory
         }
     })
+
+    if Config.footer == 'hud' then
+        local ped = PlayerPedId()
+        local hunger, thirst = getStatusValues()
+        SendNUIMessage({
+            action = 'updateHUD',
+            data = {
+                health = (GetEntityHealth(ped) - 100) / (GetEntityMaxHealth(ped) - 100) * 100,
+                armor = GetPedArmour(ped),
+                hunger = hunger,
+                thirst = thirst,
+            }
+        })
+    end
 
     if inv and not currentInventory.coords and inv ~= 'container' and inv ~= 'glovebox' then
         currentInventory.coords = GetEntityCoords(playerPed)
@@ -337,8 +385,6 @@ RegisterNetEvent('ox_inventory:forceOpenInventory', function(left, right)
 	SetNuiFocus(true, true)
 	SetNuiFocusKeepInput(true)
 	closeTrunk()
-
-	if client.screenblur then Utils.blurIn() end
 
 	currentInventory = right or defaultInventory
 	currentInventory.ignoreSecurityChecks = true
@@ -895,11 +941,15 @@ function client.closeInventory()
 		invOpen = nil
 		SetNuiFocus(false, false)
 		SetNuiFocusKeepInput(false)
-		Utils.blurOut()
 		closeTrunk()
 		SendNUIMessage({ action = 'closeInventory' })
 		SetInterval(client.interval, 200)
 		Wait(200)
+
+		SetPlayerCanDoDriveBy(cache.playerId, true)
+		SetPedCanSwitchWeapon(cache.ped, true)
+		DisablePlayerFiring(cache.playerId, false)
+		SetPedCanSwitchWeapon(cache.ped, true)
 
 		if invOpen ~= nil then return end
 
@@ -1100,7 +1150,9 @@ RegisterNetEvent('ox_inventory:createDrop', function(dropId, data, owner, slot)
 
 		if invOpen and #(GetEntityCoords(playerPed) - data.coords) <= 1 then
 			if not cache.vehicle then
-				client.openInventory('drop', dropId)
+				if not (currentInventory and currentInventory.type == 'drop' and currentInventory.id == dropId) then
+					client.openInventory('drop', dropId)
+				end
 			else
 				SendNUIMessage({
 					action = 'setupInventory',
@@ -1240,7 +1292,9 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			description = v.description,
 			buttons = buttons,
 			ammoName = v.ammoname,
-			image = v.client?.image
+			image = v.client?.image,
+			rarity = v.rarity,
+			throwProp = v.throwProp
 		}
 	end
 
@@ -1346,11 +1400,44 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 				items = PlayerData.inventory,
 				maxWeight = shared.playerweight,
 			},
-			imagepath = client.imagepath
+			imagepath = client.imagepath,
+			config = {
+				footer = Config.footer or 'hud',
+				showCategories = Config.showCategories ~= false,
+				categories = Config.categories or {},
+				showClothingTab = Config.showClothingTab ~= false,
+				showLogo = Config.showLogo ~= false,
+				logoFile = Config.logoFile or 'assets/of_logo.png',
+			},
+			theme = (function()
+				local ok, result = pcall(function()
+					return exports["of_inv_extension"]:getInvTheme()
+				end)
+				if not ok then
+					print("Missing of_inv_extension resource, download from portal")
+					return {}
+				end
+				return result or {}
+			end)(),
 		}
 	})
 
 	PlayerData.loaded = true
+
+	SetTimeout(500, function()
+		SendNUIMessage({
+			action = 'preloadInventory',
+			data = {
+				leftInventory = {
+					id = cache.playerId,
+					slots = shared.playerslots,
+					items = {},
+					maxWeight = shared.playerweight,
+				},
+				rightInventory = defaultInventory
+			}
+		})
+	end)
 
 	if not client.disablesetupnotification then
 		lib.notify({ description = locale('inventory_setup') })
@@ -1461,8 +1548,39 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			DisableAllControlActions(0)
 			HideHudAndRadarThisFrame()
 
-			for i = 1, #EnableKeys do
-				EnableControlAction(0, EnableKeys[i], true)
+			if Config.disableAllControls then
+				DisablePlayerFiring(playerId, true)
+				SetPedCanSwitchWeapon(playerPed, false)
+				SetPlayerCanDoDriveBy(playerId, false)
+
+				SetPedStealthMovement(playerPed, false)
+				SetPedUsingActionMode(playerPed, false, -1, 0)
+				ResetPedMovementClipset(playerPed, 0)
+				ResetPedStrafeClipset(playerPed)
+
+				SetPedConfigFlag(playerPed, 58, true)
+				SetPedConfigFlag(playerPed, 60, true)
+				SetPedConfigFlag(playerPed, 78, true)
+
+				local blockedControls = {24, 25, 36, 37, 44, 45, 47, 91, 92, 114, 115, 140, 141, 142, 143, 257, 263, 264}
+
+				for i = 1, #EnableKeys do
+					local key = EnableKeys[i]
+					local blocked = false
+					for j = 1, #blockedControls do
+						if key == blockedControls[j] then
+							blocked = true
+							break
+						end
+					end
+					if not blocked then
+						EnableControlAction(0, key, true)
+					end
+				end
+			else
+				for i = 1, #EnableKeys do
+					EnableControlAction(0, EnableKeys[i], true)
+				end
 			end
 
 			if currentInventory.type == 'drop' or currentInventory.type == 'newdrop' then
@@ -1477,6 +1595,10 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 			if usingItem or invOpen or IsPedCuffed(playerPed) then
 				DisablePlayerFiring(playerId, true)
+			end
+
+			if invOpen then
+				DisableControlAction(0, 36, true)
 			end
 
 			if not EnableWeaponWheel then
@@ -1599,8 +1721,6 @@ RegisterNetEvent('ox_inventory:viewInventory', function(left, right)
 	SetNuiFocusKeepInput(true)
 	closeTrunk()
 
-	if client.screenblur then Utils.blurIn() end
-
 	currentInventory = right or defaultInventory
 	currentInventory.ignoreSecurityChecks = true
     currentInventory.type = 'inspect'
@@ -1622,7 +1742,24 @@ RegisterNUICallback('uiLoaded', function(_, cb)
 end)
 
 RegisterNUICallback('getItemData', function(itemName, cb)
-	cb(Items[itemName])
+	local item = Items[itemName]
+
+	if not item then return cb(nil) end
+
+	-- Flatten to match the shape sent by the `init` batch (client.lua setup).
+	-- The UI reads `image` at the root; the raw item stores it under `client.image`.
+	-- Returning the raw object left weapon components (suppressors, mags) imageless
+	-- when resolved on-demand (e.g. first-seen items in a stash).
+	cb({
+		label = item.label,
+		stack = item.stack,
+		close = item.close,
+		count = item.count,
+		description = item.description,
+		ammoName = item.ammoname,
+		image = item.client and item.client.image,
+		rarity = item.rarity,
+	})
 end)
 
 RegisterNUICallback('removeComponent', function(data, cb)
@@ -1775,6 +1912,49 @@ RegisterNUICallback('giveItem', function(data, cb)
     end
 end)
 
+
+RegisterNUICallback("startScreenPlayer", function(_, cb)
+	exports['of_inv_extension']:start()
+	cb(1)
+end)
+
+RegisterNUICallback("getScreenPlayer", function(data, cb)
+	local serverId = exports['of_inv_extension']:update(data.x, data.y)
+	cb(serverId or 0)
+end)
+
+RegisterNUICallback("giveItemToScreenPlayer", function(data, cb)
+	cb(1)
+	local serverId = exports['of_inv_extension']:confirm()
+	if serverId and serverId > 0 then
+		giveItemToTarget(serverId, data.slot, data.count)
+	end
+end)
+
+RegisterNUICallback("clearScreenPlayer", function(_, cb)
+	exports['of_inv_extension']:cancel()
+	cb(1)
+end)
+
+RegisterNUICallback('throwItem', function(data, cb)
+	cb(1)
+
+	local slotData = PlayerData.inventory[data.slot]
+	if not slotData then return end
+
+	local itemData = Items[slotData.name]
+	if not itemData or not itemData.throwProp then return end
+
+	client.closeInventory()
+
+	local netId = exports['of_inv_extension']:throwItem(itemData.throwProp)
+
+	if netId then
+		TriggerServerEvent('ox_inventory:removeItem', slotData.name, 1, nil, data.slot)
+		TriggerServerEvent('of_inv_extension:registerThrow', netId, slotData.name)
+	end
+end)
+
 RegisterNUICallback('useButton', function(data, cb)
 	useButton(data.id, data.slot)
 	cb(1)
@@ -1783,6 +1963,64 @@ end)
 RegisterNUICallback('exit', function(_, cb)
 	client.closeInventory()
 	cb(1)
+end)
+
+RegisterNUICallback('cannotCarry', function(_, cb)
+	cb(1)
+	lib.notify({ type = 'error', description = locale('cannot_carry') })
+end)
+
+RegisterNUICallback('notifyError', function(data, cb)
+	cb(1)
+	lib.notify({ type = 'error', description = data.description or locale('cannot_carry') })
+end)
+
+RegisterNUICallback('actionButton1', function(_, cb)
+	print('[ox_inventory] Action Button 1 pressed')
+	cb(1)
+end)
+
+RegisterNUICallback('actionButton2', function(_, cb)
+	print('[ox_inventory] Action Button 2 pressed')
+	cb(1)
+end)
+
+RegisterNUICallback('getMoney', function(_, cb)
+	local money = lib.callback.await('ox_inventory:getMoney', false)
+	cb(money or { bank = 0, cash = 0 })
+end)
+
+RegisterNUICallback('closeInventory', function(_, cb)
+	client.closeInventory()
+	cb(1)
+end)
+
+RegisterNUICallback('shopCheckout', function(data, cb)
+	local success, responseData, message = lib.callback.await('ox_inventory:shopCheckout', 100, data)
+
+	if success and responseData then
+		local money = lib.callback.await('ox_inventory:getMoney', false)
+		if money then
+			SendNUIMessage({
+				action = 'setMoney',
+				data = money
+			})
+		end
+
+		if responseData.shopItems then
+			for _, shopSlot in pairs(responseData.shopItems) do
+				SendNUIMessage({
+					action = 'setSlot',
+					data = {
+						item = shopSlot.item,
+						inventory = 'shop'
+					}
+				})
+			end
+		end
+	end
+
+	cb({ success = success, message = message })
 end)
 
 lib.callback.register('ox_inventory:startCrafting', function(id, recipe)
@@ -1860,6 +2098,57 @@ RegisterNUICallback('swapItems', function(data, cb)
             currentWeapon.slot = weaponSlot
         end
 
+		if response then
+			updateInventory(response.items, response.weight)
+		end
+	elseif response then
+		if type(response) == 'table' then
+			SendNUIMessage({ action = 'refreshSlots', data = { items = response } })
+		else
+			lib.notify({ type = 'error', description = locale(response) })
+		end
+	end
+end)
+
+RegisterNUICallback('splitItem', function(data, cb)
+	if swapActive or not invOpen or invBusy then return cb(false) end
+
+	local inventoryType = data.inventoryType or 'player'
+	local emptySlot = nil
+
+	if inventoryType == 'player' then
+		for i = 1, shared.playerslots do
+			local slotData = PlayerData.inventory and PlayerData.inventory[i]
+			if not slotData then
+				emptySlot = i
+				break
+			end
+		end
+	else
+		-- For secondary inventories the NUI sends the empty toSlot it found
+		emptySlot = data.toSlot
+	end
+
+	if not emptySlot then
+		lib.notify({ type = 'error', description = locale('no_slots') })
+		return cb(false)
+	end
+
+	local swapData = {
+		fromSlot = data.slot,
+		toSlot = emptySlot,
+		fromType = inventoryType,
+		toType = inventoryType,
+		count = data.count
+	}
+
+	swapActive = true
+	local success, response = lib.callback.await('ox_inventory:swapItems', false, swapData)
+	swapActive = false
+
+	cb(success or false)
+
+	if success then
 		if response then
 			updateInventory(response.items, response.weight)
 		end

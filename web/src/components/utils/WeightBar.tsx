@@ -1,50 +1,56 @@
 import React, { useMemo } from 'react';
 
-const colorChannelMixer = (colorChannelA: number, colorChannelB: number, amountToMix: number) => {
-  let channelA = colorChannelA * amountToMix;
-  let channelB = colorChannelB * (1 - amountToMix);
-  return channelA + channelB;
-};
+interface WeightBarProps {
+  percent: number;
+  current?: number;
+  max?: number;
+  durability?: boolean;
+}
 
-const colorMixer = (rgbA: number[], rgbB: number[], amountToMix: number) => {
-  let r = colorChannelMixer(rgbA[0], rgbB[0], amountToMix);
-  let g = colorChannelMixer(rgbA[1], rgbB[1], amountToMix);
-  let b = colorChannelMixer(rgbA[2], rgbB[2], amountToMix);
-  return `rgb(${r}, ${g}, ${b})`;
-};
+const WeightBar: React.FC<WeightBarProps> = ({ percent, current, max, durability }) => {
+  const weightClass = useMemo(() => {
+    if (durability) return '';
+    if (percent <= 60) return 'normal';
+    if (percent <= 85) return 'warning';
+    return 'critical';
+  }, [percent, durability]);
 
-const COLORS = {
-  // Colors used - https://materialui.co/flatuicolors
-  primaryColor: [231, 76, 60], // Red (Pomegranate)
-  secondColor: [39, 174, 96], // Green (Nephritis)
-  accentColor: [211, 84, 0], // Orange (Oragne)
-};
+  if (durability) {
+    const getDurabilityColorVar = (p: number) => {
+      if (p < 30) return 'var(--theme-durability-low)';
+      if (p < 70) return 'var(--theme-durability-medium)';
+      return 'var(--theme-durability-high)';
+    };
 
-const WeightBar: React.FC<{ percent: number; durability?: boolean }> = ({ percent, durability }) => {
-  const color = useMemo(
-    () =>
-      durability
-        ? percent < 50
-          ? colorMixer(COLORS.accentColor, COLORS.primaryColor, percent / 100)
-          : colorMixer(COLORS.secondColor, COLORS.accentColor, percent / 100)
-        : percent > 50
-          ? colorMixer(COLORS.primaryColor, COLORS.accentColor, percent / 100)
-          : colorMixer(COLORS.accentColor, COLORS.secondColor, percent / 50),
-    [durability, percent]
-  );
+    const color = getDurabilityColorVar(percent);
+    const filledSquares = Math.ceil((percent / 100) * 8);
+
+    return (
+      <div className="absolute bottom-[4px] left-0 right-0 flex justify-center gap-[2px] pointer-events-none">
+        {[...Array(8)].map((_, index) => (
+          <div
+            key={index}
+            className="w-[6px] h-[6px] rounded-[1px] transition-all duration-300"
+            style={{
+              backgroundColor: index < filledSquares ? color : 'var(--theme-durability-bg)',
+              border: '1px solid var(--theme-durability-border)',
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className={durability ? 'durability-bar' : 'weight-bar'}>
-      <div
-        style={{
-          visibility: percent > 0 ? 'visible' : 'hidden',
-          height: '100%',
-          width: `${percent}%`,
-          backgroundColor: color,
-          transition: `background ${0.3}s ease, width ${0.3}s ease`,
-        }}
-      ></div>
+    <div className="weight-bar-container">
+      <div className="weight-bar">
+        <div
+          className={`weight-bar-fill ${weightClass}`}
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
     </div>
   );
 };
+
 export default WeightBar;

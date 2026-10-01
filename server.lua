@@ -66,10 +66,6 @@ function server.setPlayerInventory(player, data)
 
         repeat
             inv.player.ped = GetPlayerPed(player.source)
-
-            if inv.player.ped == 0 then
-                Wait(0)
-            end
         until inv.player.ped ~= 0
 
         if server.syncInventory then server.syncInventory(inv) end
@@ -183,7 +179,9 @@ local function openInventory(source, invType, data, ignoreSecurityChecks)
                 if plate then
                     if server.trimplate then plate = string.strtrim(plate) end
 
-                    data.id = (invType == 'glovebox' and 'glove' or 'trunk') .. plate
+                    if not data.id then
+                        data.id = (invType == 'glovebox' and 'glove' or 'trunk') .. plate
+                    end
                 end
 
                 data.type = invType
@@ -388,6 +386,38 @@ lib.callback.register('ox_inventory:getInventory', function(source, id)
     }
 end)
 
+lib.callback.register('ox_inventory:getMoney', function(source)
+	local money = { bank = 0, cash = 0 }
+
+	if GetResourceState('qb-core') == 'started' or GetResourceState('qbx_core') == 'started' then
+		local QBCore = exports['qb-core']:GetCoreObject() or exports['qbx_core']:GetCoreObject()
+		if QBCore then
+			local Player = QBCore.Functions.GetPlayer(source)
+			if Player and Player.PlayerData and Player.PlayerData.money then
+				money.bank = Player.PlayerData.money.bank or 0
+				money.cash = Player.PlayerData.money.cash or 0
+			end
+		end
+	elseif GetResourceState('es_extended') == 'started' then
+		local ESX = exports['es_extended']:getSharedObject()
+		if ESX then
+			local xPlayer = ESX.GetPlayerFromId(source)
+			if xPlayer then
+				money.bank = xPlayer.getAccount('bank')?.money or 0
+				money.cash = xPlayer.getAccount('money')?.money or 0
+			end
+		end
+	elseif GetResourceState('ox_core') == 'started' then
+		local player = Ox.GetPlayer(source)
+		if player then
+			money.bank = player.getAccount('money') or 0
+			money.cash = player.get('money') or 0
+		end
+	end
+
+	return money
+end)
+
 RegisterNetEvent('ox_inventory:usedItemInternal', function(slot)
     local inventory = Inventory(source)
 
@@ -490,6 +520,16 @@ lib.callback.register('ox_inventory:useItem', function(source, itemName, slot, m
                     if result ~= nil then
                         data.server = result
                     end
+
+                    -- If no ox item callback AND no client-side handler, invoke the QB/ESX framework callback
+                    if not item.cb and not (item.client and (item.client.event or item.client.export)) and server.UseItem then
+                        local ok, cbResult = pcall(server.UseItem, source, data.name, data)
+                        if not ok then
+                            print(('[ox_inventory] UseItem error for %s: %s'):format(data.name, tostring(cbResult)))
+                            return false
+                        end
+                        if cbResult == false then return false end
+                    end
                 else
                     return TriggerClientEvent('ox_lib:notify', source,
                         { type = 'error', description = locale('item_not_enough', item.name) })
@@ -501,7 +541,12 @@ lib.callback.register('ox_inventory:useItem', function(source, itemName, slot, m
                 -- of usable items which led to issues when restarting resources (for obvious reasons), but config
                 -- developers complained the inventory broke their items. Safely invoking registered item callbacks
                 -- should resolve issues, i.e. https://github.com/esx-framework/esx-legacy/commit/9fc382bbe0f5b96ff102dace73c424a53458c96e
-                return pcall(server.UseItem, source, data.name, data)
+                local ok, cbResult = pcall(server.UseItem, source, data.name, data)
+                if not ok then
+                    print(('[ox_inventory] UseItem error for %s: %s'):format(data.name, tostring(cbResult)))
+                    return false
+                end
+                if cbResult == false then return false end
             end
 
             data.consume = consume

@@ -28,20 +28,40 @@ server_scripts {
     'init.lua'
 }
 
-client_script 'init.lua'
+client_scripts {
+  'init.lua',
+
+  -- DPEMOTES
+  'modules/clothing/Functions.lua',
+  'modules/clothing/Locale/*.lua',
+  'modules/clothing/Variations.lua',
+  'modules/clothing/Config.lua',
+  'modules/clothing/Clothing.lua',
+}
 
 ui_page 'web/build/index.html'
+content_security_policy "default-src 'self'; img-src 'self' https://i.imgur.com https://*.imgur.com data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
 
 files {
     'client.lua',
     'server.lua',
+    'config.lua',
     'locales/*.json',
     'web/build/index.html',
     'web/build/assets/*.js',
-    'web/build/assets/*.css',
+    'web/build/**/*.css',
+    'web/build/assets/*.png',
+    'web/build/assets/*.svg',
+    'web/build/fonts/*.otf',
     'web/images/*.png',
     'modules/**/shared.lua',
     'modules/**/client.lua',
     'modules/bridge/**/client.lua',
     'data/*.lua',
 }
+
+escrow_ignore {
+    '**/*'
+}
+
+dependency '/assetpacks'

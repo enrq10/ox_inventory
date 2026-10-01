@@ -3,19 +3,31 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+  ],
   base: './',
-  publicDir: false,
+  publicDir: 'public',
   build: {
     outDir: 'build',
     target: 'esnext',
-    emptyOutDir: true,
-    rolldownOptions: {
+    cssCodeSplit: false,
+    minify: false,
+    rollupOptions: {
       output: {
-        assetFileNames: 'assets/[name][extname]',
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name].js',
-      },
-    },
+        assetFileNames: (asset) => {
+          if (asset.name && asset.name.endsWith('.css')) {
+            return '[name].[hash][extname]'
+          }
+          return 'assets/[name].[hash][extname]'
+        }
+      }
+    }
+  },
+  define: {
+    'process.env': {},
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
   },
 });

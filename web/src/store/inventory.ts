@@ -18,6 +18,7 @@ const initialState: State = {
     items: [],
   },
   rightInventory: {
+    label: "Tienda de armas",
     id: '',
     type: '',
     slots: 0,
@@ -26,7 +27,9 @@ const initialState: State = {
   },
   additionalMetadata: new Array(),
   itemAmount: 0,
+  splitAmount: 0,
   shiftPressed: false,
+  altPressed: false,
   isBusy: false,
 };
 
@@ -52,8 +55,14 @@ export const inventorySlice = createSlice({
     setItemAmount: (state, action: PayloadAction<number>) => {
       state.itemAmount = action.payload;
     },
+    setSplitAmount: (state, action: PayloadAction<number>) => {
+      state.splitAmount = action.payload;
+    },
     setShiftPressed: (state, action: PayloadAction<boolean>) => {
       state.shiftPressed = action.payload;
+    },
+    setAltPressed: (state, action: PayloadAction<boolean>) => {
+      state.altPressed = action.payload;
     },
     setContainerWeight: (state, action: PayloadAction<number>) => {
       const container = state.leftInventory.items.find((item) => item.metadata?.container === state.rightInventory.id);
@@ -88,7 +97,9 @@ export const inventorySlice = createSlice({
 export const {
   setAdditionalMetadata,
   setItemAmount,
+  setSplitAmount,
   setShiftPressed,
+  setAltPressed,
   setupInventory,
   swapSlots,
   moveSlots,

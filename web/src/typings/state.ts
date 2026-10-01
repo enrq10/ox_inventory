@@ -5,7 +5,9 @@ export type State = {
   leftInventory: Inventory;
   rightInventory: Inventory;
   itemAmount: number;
+  splitAmount: number;
   shiftPressed: boolean;
+  altPressed: boolean;
   isBusy: boolean;
   additionalMetadata: Array<{ metadata: string; value: string }>;
   history?: {

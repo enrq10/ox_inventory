@@ -1,20 +1,29 @@
-import { canStack, findAvailableSlot, getTargetInventory, isSlotWithItem } from '../helpers';
+import { canStack, findAvailableSlot, getItemData, getTargetInventory, isSlotWithItem } from '../helpers';
 import { validateMove } from '../thunks/validateItems';
 import { store } from '../store';
 import { DragSource, DropTarget, InventoryType, SlotWithItem } from '../typings';
 import { moveSlots, stackSlots, swapSlots } from '../store/inventory';
 import { Items } from '../store/items';
+import { altDragActive } from './dragModifiers';
+import { fetchNui } from '../utils/fetchNui';
 
-export const onDrop = (source: DragSource, target?: DropTarget) => {
+export const onDrop = async (source: DragSource, target?: DropTarget) => {
   const { inventory: state } = store.getState();
 
   const { sourceInventory, targetInventory } = getTargetInventory(state, source.inventory, target?.inventory);
 
   const sourceSlot = sourceInventory.items[source.item.slot - 1] as SlotWithItem;
 
-  const sourceData = Items[sourceSlot.name];
+  let sourceData = Items[sourceSlot.name];
 
-  if (sourceData === undefined) return console.error(`${sourceSlot.name} item data undefined!`);
+  if (sourceData === undefined) {
+    console.warn(`${sourceSlot.name} item data not loaded, fetching...`);
+    sourceData = await getItemData(sourceSlot.name);
+
+    if (!sourceData) {
+      return console.error(`${sourceSlot.name} item data undefined and could not be fetched!`);
+    }
+  }
 
   // If dragging from container slot
   if (sourceSlot.metadata?.container !== undefined) {
@@ -31,18 +40,24 @@ export const onDrop = (source: DragSource, target?: DropTarget) => {
     ? targetInventory.items[target.item.slot - 1]
     : findAvailableSlot(sourceSlot, sourceData, targetInventory.items);
 
-  if (targetSlot === undefined) return console.error('Target slot undefined!');
+  if (targetSlot === undefined) {
+    fetchNui('cannotCarry', {}).catch(() => {});
+    return;
+  }
 
   // If dropping on container slot when opened
   if (targetSlot.metadata?.container !== undefined && state.rightInventory.id === targetSlot.metadata.container)
     return console.log(`Cannot swap item ${sourceSlot.name} with container ${targetSlot.name} when opened`);
 
+  const canSplit = sourceSlot.count > 1 && sourceInventory.type !== 'shop';
   const count =
-    state.shiftPressed && sourceSlot.count > 1 && sourceInventory.type !== 'shop'
+    altDragActive && canSplit
       ? Math.floor(sourceSlot.count / 2)
-      : state.itemAmount === 0 || state.itemAmount > sourceSlot.count
-        ? sourceSlot.count
-        : state.itemAmount;
+      : state.splitAmount > 0 && state.splitAmount < sourceSlot.count
+      ? state.splitAmount
+      : state.shiftPressed && canSplit
+      ? Math.floor(sourceSlot.count / 2)
+      : sourceSlot.count;
 
   const data = {
     fromSlot: sourceSlot,

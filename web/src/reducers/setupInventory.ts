@@ -52,5 +52,6 @@ export const setupInventoryReducer: CaseReducer<
     };
 
   state.shiftPressed = false;
+  state.splitAmount = 0;
   state.isBusy = false;
 };

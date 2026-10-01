@@ -3,3 +3,6 @@ modules/logs/**/
 node_modules
 .idea
 .luarc.jsonc
+
+# runtime artifacts
+.fxap
